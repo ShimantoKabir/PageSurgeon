@@ -1,0 +1,465 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  background-color: #2b2b36;
+  color: #e0e0e0;
+  height: 100vh;
+  overflow: hidden;
+}
+.app-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background-color: #23232c;
+  border-right: 1px solid #1a1a21;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+#new-rule-btn {
+  background: none;
+  color: #64b5f6;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 12px;
+}
+.search-bar {
+  padding: 0 16px 16px 16px;
+}
+.search-bar input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #3c3c4a;
+  background-color: #1e1e26;
+  color: #fff;
+  outline: none;
+  font-size: 13px;
+}
+.search-bar input:focus {
+  border-color: #64b5f6;
+}
+.rules-list {
+  list-style: none;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+.rule-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #1a1a21;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.rule-item:hover {
+  background-color: #2c2c36;
+}
+.rule-item.active {
+  background-color: #383844;
+  border-left: 3px solid #64b5f6;
+  padding-left: 13px;
+}
+.rule-info {
+  flex-grow: 1;
+  overflow: hidden;
+  margin-right: 10px;
+}
+.rule-name {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rule-url {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-footer {
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #1a1a21;
+}
+.text-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+}
+.text-btn:hover {
+  color: #fff;
+}
+.file-label {
+  display: inline-block;
+  cursor: pointer;
+}
+
+/* Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 16px;
+  margin-top: 2px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #444;
+  transition: 0.2s;
+  border-radius: 16px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: #4caf50;
+}
+input:checked + .slider:before {
+  transform: translateX(12px);
+}
+
+/* Main Area */
+.editor-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e24;
+}
+.editor-header {
+  display: flex;
+  padding: 12px 20px;
+  background-color: #272732;
+  border-bottom: 1px solid #1a1a21;
+  align-items: center;
+  gap: 16px;
+}
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+.url-group {
+  flex-grow: 1;
+}
+.input-group label {
+  font-size: 11px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+.input-group input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #444;
+}
+.input-group input:focus {
+  border-bottom: 1px solid #64b5f6;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.save-btn {
+  background-color: #44475a;
+  color: white;
+  border: 1px solid #6272a4;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.save-btn:hover {
+  background-color: #6272a4;
+}
+.secondary-btn {
+  background: #333;
+  color: #ddd;
+  border: 1px solid #555;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.secondary-btn:hover {
+  background: #444;
+}
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.icon-btn:hover {
+  opacity: 1;
+  color: #ff5555;
+}
+
+/* Modules Panel */
+.modules-panel {
+  background: #272732;
+  padding: 16px 20px;
+  border-bottom: 1px solid #1a1a21;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+.modules-panel.hidden {
+  display: none;
+}
+.modules-panel label {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+.modules-panel textarea {
+  background: #1e1e24;
+  color: #fff;
+  border: 1px solid #3c3c4a;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  font-family: monospace;
+  height: 60px;
+  resize: vertical;
+}
+
+/* Editors Layout */
+.editors-container {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #1a1a21;
+  overflow: hidden;
+}
+.pane-header {
+  background-color: #23232c;
+  border-bottom: 1px solid #1a1a21;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 12px;
+}
+.tab {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #888;
+  border-top: 2px solid transparent;
+}
+.tab.active {
+  color: #fff;
+  border-top-color: #64b5f6;
+  background-color: #1e1e24;
+}
+.editor-hint {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Wrapper with Line Numbers */
+.code-wrapper {
+  display: flex;
+  flex-grow: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: #1e1e24;
+}
+
+.line-numbers {
+  width: 44px;
+  padding: 15px 8px 15px 0;
+  text-align: right;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 20px;
+  color: #555;
+  background-color: #1a1a20;
+  border-right: 1px solid #282830;
+  user-select: none;
+  overflow: hidden;
+  white-space: pre-line;
+}
+
+.code-surface {
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.code-surface textarea,
+.code-surface pre {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 15px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre;
+  overflow-wrap: normal;
+  border: none;
+  margin: 0;
+  tab-size: 4;
+  -moz-tab-size: 4;
+}
+
+.code-surface textarea {
+  color: transparent;
+  background: transparent;
+  caret-color: #58a6ff;
+  z-index: 2;
+  resize: none;
+  outline: none;
+  overflow: auto;
+}
+
+.code-surface pre {
+  color: #d4d4d4;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.code-surface pre code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Syntax Highlighting Tokens */
+.token.comment {
+  color: #6a9955;
+  font-style: italic;
+}
+.token.string {
+  color: #ce9178;
+}
+.token.keyword {
+  color: #c586c0;
+  font-weight: bold;
+}
+.token.function {
+  color: #dcdcaa;
+}
+.token.property {
+  color: #9cdcfe;
+}
+.token.selector {
+  color: #d7ba7d;
+  font-weight: bold;
+}
+.token.number {
+  color: #b5cea8;
+}
+
+/* Autocomplete Suggestion Popup (IntelliSense Style) */
+.autocomplete-box {
+  position: absolute;
+  top: 45px;
+  left: 45px;
+  width: 280px;
+  max-height: 220px;
+  overflow-y: auto;
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+}
+
+.autocomplete-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #cccccc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+  background-color: #04395e;
+  color: #ffffff;
+}
+
+.suggestion-text {
+  font-family: "Consolas", "Courier New", monospace;
+  font-weight: 500;
+}
+
+.suggestion-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: #333;
+  color: #9cdcfe;
+  text-transform: uppercase;
+}
+
+.hidden {
+  display: none !important;
+}

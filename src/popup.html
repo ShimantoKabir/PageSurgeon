@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PageSurgeon</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <!-- Header -->
+        <header class="popup-header">
+            <div class="title-wrap">
+                <h1 id="extension-title" class="extension-title"></h1>
+                <span id="version-tag" class="version-tag"></span>
+            </div>
+            <button id="open-settings-btn" class="settings-btn" title="Open Dashboard / Settings">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 19.5 6.5 19.5 17.5 12 22 4.5 17.5 4.5 6.5 12 2"></polygon>
+                    <circle cx="12" cy="12" r="3.5" fill="currentColor"></circle>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Body content -->
+        <main class="popup-body">
+            <!-- Rules list matching current tab -->
+            <ul id="active-rules-list" class="active-rules-list hidden"></ul>
+
+            <!-- Empty state -->
+            <div id="no-rules-state" class="empty-state hidden">
+                <span>No rules yet, </span><button id="add-rule-link" class="link-btn">add a new one</button>
+            </div>
+
+            <!-- Add new rule button for matching state -->
+            <button id="quick-add-btn" class="action-btn hidden">+ Add rule for this site</button>
+
+            <!-- Warning notice: Shown when URL is restricted -->
+            <div id="no-access-warning" class="warning-banner hidden">
+                <div class="warning-icon-wrap">
+                    <svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <div class="warning-text">Looks like the extension doesn't have access to this page</div>
+            </div>
+        </main>
+    </div>
+    <script src="shared.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

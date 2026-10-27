@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PageSurgeon</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>RULES (<span id="rule-count">0</span>)</h2>
+          <button id="new-rule-btn">New rule</button>
+        </div>
+        <div class="search-bar">
+          <input type="text" id="search-input" placeholder="Find..." />
+        </div>
+        <ul id="rules-list" class="rules-list"></ul>
+        <div class="sidebar-footer">
+          <button id="export-btn" class="text-btn">Export JSON</button>
+          <label for="import-file" class="text-btn file-label"
+            >Import JSON</label
+          >
+          <input
+            type="file"
+            id="import-file"
+            accept=".json"
+            style="display: none"
+          />
+        </div>
+      </aside>
+
+      <!-- Main Editor Area -->
+      <main class="editor-area">
+        <header class="editor-header">
+          <div class="input-group" style="flex: 1; max-width: 250px">
+            <label>Rule name</label>
+            <input type="text" id="rule-name" placeholder="ex. My new rule" />
+          </div>
+          <div class="input-group url-group">
+            <label>URL pattern (comma separated, use ! to exclude)</label>
+            <input
+              type="text"
+              id="url-pattern"
+              placeholder="https://site.com/*, !https://site.com/admin/*"
+            />
+          </div>
+          <div class="header-actions">
+            <button
+              id="modules-btn"
+              class="secondary-btn"
+              title="Add external JS/CSS URLs (e.g., jQuery)"
+            >
+              0 Modules
+            </button>
+            <button id="save-btn" class="save-btn">Save</button>
+            <button id="delete-btn" class="icon-btn" title="Delete Rule">
+              🗑️
+            </button>
+          </div>
+        </header>
+
+        <!-- Hidden Modules Panel -->
+        <div id="modules-panel" class="modules-panel hidden">
+          <label>External Libraries (URLs, one per line):</label>
+          <textarea
+            id="libs-editor"
+            placeholder="https://code.jquery.com/jquery-3.6.0.min.js&#10;https://example.com/style.css"
+          ></textarea>
+        </div>
+
+        <!-- Editors with Line Numbers & Autocomplete -->
+        <div class="editors-container">
+          <!-- JavaScript Pane -->
+          <div class="editor-pane" id="pane-js">
+            <div class="pane-header">
+              <span class="tab active">JavaScript</span>
+              <span class="editor-hint">Press Tab/Enter to autocomplete</span>
+            </div>
+            <div class="code-wrapper">
+              <div class="line-numbers" id="js-lines">1</div>
+              <div class="code-surface">
+                <textarea
+                  id="js-editor"
+                  class="code-editor"
+                  spellcheck="false"
+                  placeholder="Start typing JavaScript... (e.g., doc, addEvent, fetch)"
+                ></textarea>
+                <pre aria-hidden="true"><code id="js-highlight"></code></pre>
+                <!-- Autocomplete Dropdown -->
+                <div class="autocomplete-box hidden" id="js-autocomplete"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CSS Pane -->
+          <div class="editor-pane" id="pane-css">
+            <div class="pane-header">
+              <span class="tab active">SCSS or CSS</span>
+              <span class="editor-hint">Press Tab/Enter to autocomplete</span>
+            </div>
+            <div class="code-wrapper">
+              <div class="line-numbers" id="css-lines">1</div>
+              <div class="code-surface">
+                <textarea
+                  id="css-editor"
+                  class="code-editor"
+                  spellcheck="false"
+                  placeholder="Start typing CSS... (e.g., disp, col, back, mar)"
+                ></textarea>
+                <pre aria-hidden="true"><code id="css-highlight"></code></pre>
+                <!-- Autocomplete Dropdown -->
+                <div
+                  class="autocomplete-box hidden"
+                  id="css-autocomplete"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="options.js"></script>
+  </body>
+</html>
