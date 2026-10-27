@@ -2,6 +2,32 @@
 
 Apply custom JavaScript and CSS rules to matching websites.
 
+## TypeScript
+
+Choose **TypeScript** from the language selector above the JavaScript editor.
+Write a single-file TypeScript script, then save. PageSurgeon stores the
+original source and compiles it locally to JavaScript before registration,
+live execution, or fallback injection. Existing rules default to JavaScript.
+The language selection is preserved in JSON exports and imports.
+
+TypeScript supports type annotations, interfaces, type aliases, enums,
+generics, and classes. Beautify understands TypeScript and uses two-space
+indentation. Compilation errors appear below the editor header and prevent
+that script from executing; the source can still be saved for later editing.
+Compilation also happens before document-start registration, preserving the
+rule's injection timing.
+
+This is single-file transpilation, without semantic type checking or package
+bundling. Static imports/exports and JSX/TSX are not supported. Use ordinary
+browser globals or the external libraries panel for runtime dependencies.
+The TypeScript compiler is bundled with the extension; source stays on-device.
+
+Run TypeScript checks with `node tests/typescript.test.cjs`.
+Run the Chrome worker lifecycle and exact badge-example checks with
+`node tests/service-worker.test.cjs`. The lifecycle harness rejects new script
+imports after worker installation, matching Chrome's restriction. The badge
+checks use a DOM fixture; browser verification is a separate manual check.
+
 ## Editors
 
 Both editors support four-space indentation with Tab, selection indentation

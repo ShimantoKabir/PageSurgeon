@@ -39,6 +39,8 @@ const ui = {
   name: document.getElementById("rule-name"),
   url: document.getElementById("url-pattern"),
   js: document.getElementById("js-editor"),
+  jsLanguage: document.getElementById("js-language"),
+  compileMessage: document.getElementById("js-compile-message"),
   css: document.getElementById("css-editor"),
   hlJs: document.getElementById("js-highlight"),
   hlCss: document.getElementById("css-highlight"),
@@ -128,6 +130,21 @@ const JS_SUGGESTIONS = [
   { text: "return", type: "keyword" },
 ];
 
+const TS_SUGGESTIONS = [
+  ...JS_SUGGESTIONS,
+  { text: "interface", type: "keyword", snippet: "interface $1 {\n  $2\n}" },
+  { text: "type", type: "keyword", snippet: "type $1 = {};" },
+  { text: "enum", type: "keyword", snippet: "enum $1 {\n  $2\n}" },
+  { text: "string", type: "type" },
+  { text: "number", type: "type" },
+  { text: "boolean", type: "type" },
+  { text: "unknown", type: "type" },
+  { text: "readonly", type: "keyword" },
+  { text: "as", type: "keyword" },
+  { text: "satisfies", type: "keyword" },
+  { text: "HTMLElement", type: "type" },
+];
+
 const CSS_SUGGESTIONS = [
   { text: "display: flex;", type: "property" },
   { text: "display: grid;", type: "property" },
@@ -169,7 +186,7 @@ function highlight(text, type) {
     .replace(/>/g, "&gt;");
   if (type === "js") {
     return escaped.replace(
-      /(\/\/.*|\/\*[\s\S]*?\*\/)|(['"`])(?:(?!\2)[^\\]|\\.)*\2|\b(const|let|var|function|return|if|else|for|while|class|import|export|from|new|this|typeof|try|catch|switch|case|break|default|await|async|true|false|null|undefined)\b|\b([a-zA-Z_$][0-9a-zA-Z_$]*)\s*(?=\()/g,
+      /(\/\/.*|\/\*[\s\S]*?\*\/)|(['"`])(?:(?!\2)[^\\]|\\.)*\2|\b(const|let|var|function|return|if|else|for|while|class|import|export|from|new|this|typeof|try|catch|switch|case|break|default|await|async|true|false|null|undefined|interface|type|enum|implements|declare|namespace|readonly|public|private|protected|abstract|as|satisfies|keyof|infer|never|unknown|string|number|boolean)\b|\b([a-zA-Z_$][0-9a-zA-Z_$]*)\s*(?=\()/g,
       function (match, comment, stringQuote, keyword, func) {
         if (comment) return `<span class="token comment">${match}</span>`;
         if (stringQuote) return `<span class="token string">${match}</span>`;
@@ -383,8 +400,48 @@ const cssAuto = new AutoCompleteManager(
   CSS_SUGGESTIONS,
   "css",
 );
-jsAuto.editor = new CodeEditor(ui.js, () => updateEditor("js"), document.getElementById("js-status"));
+jsAuto.editor = new CodeEditor(ui.js, () => {
+  updateEditor("js");
+  scheduleScriptValidation();
+}, document.getElementById("js-status"));
 cssAuto.editor = new CodeEditor(ui.css, () => updateEditor("css"), document.getElementById("css-status"), "css");
+
+let compileTimer;
+function validateScriptSource() {
+  clearTimeout(compileTimer);
+  if (ui.jsLanguage.value !== "ts") {
+    ui.compileMessage.classList.add("hidden");
+    return true;
+  }
+  ui.compileMessage.classList.remove("hidden");
+  try {
+    transpileRuleJavaScript({ js: ui.js.value, jsLanguage: "ts" });
+    ui.compileMessage.textContent = "TypeScript compiles locally. Single-file scripts only; imports and JSX are not supported. No type checking.";
+    ui.compileMessage.classList.remove("editor-error");
+    return true;
+  } catch (error) {
+    ui.compileMessage.textContent = `TypeScript error: ${error.message} JavaScript will not run until this is fixed.`;
+    ui.compileMessage.classList.add("editor-error");
+    return false;
+  }
+}
+
+function updateScriptLanguage() {
+  const typescript = ui.jsLanguage.value === "ts";
+  jsAuto.hide();
+  jsAuto.dictionary = typescript ? TS_SUGGESTIONS : JS_SUGGESTIONS;
+  ui.js.setAttribute("aria-label", typescript ? "TypeScript editor" : "JavaScript editor");
+  ui.js.placeholder = typescript ? "Write TypeScript; it compiles to JavaScript before injection..." : "Start typing JavaScript...";
+  document.getElementById("beautify-js").title = typescript ? "Beautify TypeScript" : "Beautify JavaScript";
+  document.getElementById("js-format-message").classList.add("hidden");
+  validateScriptSource();
+  updateEditor("js");
+}
+ui.jsLanguage.addEventListener("change", updateScriptLanguage);
+function scheduleScriptValidation() {
+  clearTimeout(compileTimer);
+  compileTimer = setTimeout(validateScriptSource, 250);
+}
 
 for (const [type, manager] of [["js", jsAuto], ["css", cssAuto]]) {
   const button = document.getElementById(`beautify-${type}`);
@@ -393,21 +450,25 @@ for (const [type, manager] of [["js", jsAuto], ["css", cssAuto]]) {
     const ruleId = currentRuleId;
     const editor = manager.textarea;
     const source = editor.value;
+    const language = type === "js" ? ui.jsLanguage.value : "css";
     button.disabled = true;
     button.textContent = "Formatting...";
     message.classList.add("hidden");
     try {
-      const result = await beautifySource(source, type, editor.selectionStart);
+      const result = await beautifySource(source, language, editor.selectionStart);
       // A rule switch or further typing must never be overwritten by an old result.
-      if (ruleId !== currentRuleId || source !== editor.value) return;
+      if (ruleId !== currentRuleId || source !== editor.value ||
+        language !== (type === "js" ? ui.jsLanguage.value : "css")) return;
       manager.hide();
       manager.editor.replace(result.formatted, 0, source.length, result.cursorOffset);
+      if (type === "js") validateScriptSource();
       message.textContent = type === "css"
         ? "Beautified. SCSS formatting does not compile SCSS to CSS."
         : "Beautified. Save to apply your changes.";
       message.classList.remove("editor-error", "hidden");
     } catch (error) {
-      if (ruleId !== currentRuleId || source !== editor.value) return;
+      if (ruleId !== currentRuleId || source !== editor.value ||
+        language !== (type === "js" ? ui.jsLanguage.value : "css")) return;
       message.textContent = `Could not beautify: ${error.message}`;
       message.classList.add("editor-error");
       message.classList.remove("hidden");
@@ -510,6 +571,7 @@ function commitEditor() {
     name: ui.name.value,
     urlPattern: ui.url.value,
     js: ui.js.value,
+    jsLanguage: ui.jsLanguage.value === "ts" ? "ts" : "js",
     css: ui.css.value,
     libs: ui.libs.value
       .split("\n")
@@ -537,6 +599,7 @@ function selectRule(id) {
   ui.name.value = rule.name || "";
   ui.url.value = rule.urlPattern || "";
   ui.js.value = rule.js || "";
+  ui.jsLanguage.value = rule.jsLanguage === "ts" ? "ts" : "js";
   ui.css.value = rule.css || "";
   ui.runAtStart.checked = rule.runAt === "document_start";
   for (const type of ["js", "css"]) document.getElementById(`${type}-format-message`).classList.add("hidden");
@@ -547,6 +610,7 @@ function selectRule(id) {
   ui.libs.value = (rule.libs || []).join("\n");
   validateTiming();
   ui.btnMods.textContent = `${(rule.libs || []).length} Modules`;
+  updateScriptLanguage();
 
   updateEditor("js");
   updateEditor("css");
@@ -560,6 +624,7 @@ function createRule() {
     name: "New Rule",
     urlPattern: "https://example.com/*",
     js: "",
+    jsLanguage: "js",
     css: "",
     libs: [],
     enabled: true,
@@ -582,6 +647,7 @@ ui.btnSave.addEventListener("click", () => {
   if (!validateTiming()) return;
   const rule = rules.find((r) => r.id === currentRuleId);
   if (rule) {
+    validateScriptSource();
     commitEditor();
 
     ui.btnMods.textContent = `${rule.libs.length} Modules`;
@@ -647,6 +713,7 @@ ui.inputImport.addEventListener("change", (e) => {
           name: String(r.name ?? ""),
           urlPattern: String(r.urlPattern ?? ""),
           js: String(r.js ?? ""),
+          jsLanguage: r.jsLanguage === "ts" ? "ts" : "js",
           css: String(r.css ?? ""),
           libs: Array.isArray(r.libs) ? r.libs.map(String) : [],
           enabled: r.enabled !== false,

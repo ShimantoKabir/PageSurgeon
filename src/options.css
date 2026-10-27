@@ -330,6 +330,16 @@ body {
   border-top-color: #64b5f6;
   background-color: #1e1e24;
 }
+.language-select {
+  appearance: auto;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.language-select:focus-visible { outline: 2px solid #93c5fd; outline-offset: -3px; }
 .editor-hint {
   font-size: 11px;
   color: #666;

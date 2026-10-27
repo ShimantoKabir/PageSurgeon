@@ -80,11 +80,15 @@
           <!-- JavaScript Pane -->
           <div class="editor-pane" id="pane-js">
             <div class="pane-header">
-              <span class="tab active">JavaScript</span>
+              <select id="js-language" class="tab active language-select" aria-label="Script language">
+                <option value="js">JavaScript</option>
+                <option value="ts">TypeScript</option>
+              </select>
               <span class="editor-hint" id="js-help">Ctrl+Space suggestions · Ctrl+S save</span>
               <button id="beautify-js" class="beautify-btn" type="button" title="Beautify JavaScript">Beautify</button>
             </div>
             <div id="js-format-message" class="format-message hidden" role="status"></div>
+            <div id="js-compile-message" class="format-message hidden" role="status"></div>
             <div class="code-wrapper">
               <div class="line-numbers" id="js-lines">1</div>
               <div class="code-surface">
@@ -158,6 +162,8 @@
     <script src="vendor/prettier/estree.js"></script>
     <script src="vendor/prettier/postcss.js"></script>
     <script src="formatter.js"></script>
+    <script src="vendor/typescript/typescript.js"></script>
+    <script src="compiler.js"></script>
     <script src="editor.js"></script>
     <script src="options.js"></script>
   </body>

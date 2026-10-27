@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 name: urlObj.hostname,
                 urlPattern: domainPattern,
                 js: '',
+                jsLanguage: 'js',
                 css: '',
                 libs: [],
                 enabled: true,

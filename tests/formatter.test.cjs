@@ -18,6 +18,14 @@ module.exports = (async () => {
   new vm.Script(js.formatted);
   assert.equal((await format(js.formatted, 'js')).formatted, js.formatted);
 
+  const typed = 'interface Person{name:string};function greet(person:Person):string{return person.name}';
+  const formattedTS = await format(typed, 'ts', typed.indexOf('person.name') + 3);
+  assert.match(formattedTS.formatted, /\n {2}name: string;/);
+  assert.match(formattedTS.formatted, /person: Person/);
+  assert.match(formattedTS.formatted, /\n {2}return person.name;/);
+  assert.equal((await format(formattedTS.formatted, 'ts')).formatted, formattedTS.formatted);
+  await assert.rejects(() => format('const value: = ;', 'ts'));
+
   const css = await format('.card{color:red;padding:0 4px}', 'css');
   assert.match(css.formatted, /\n {2}color: red;/);
   const scss = await format('$primary:red;@mixin card($gap){padding:$gap;.title{color:$primary}}', 'css');

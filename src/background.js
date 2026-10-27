@@ -1,7 +1,11 @@
 const ext = globalThis.browser || globalThis.chrome;
 
 // Chrome imports helpers; Firefox loads them first via background.scripts.
-if (typeof importScripts === "function") importScripts("shared.js");
+// Chrome must discover every dependency during initial worker evaluation.
+// A new importScripts() dependency cannot be introduced after installation.
+if (typeof importScripts === "function") {
+  importScripts("shared.js", "vendor/typescript/typescript.js", "compiler.js");
+}
 
 // Rules whose JS is covered by a registered user script (run on page load).
 // Rules with libs are excluded: the libs must load first and be visible to
@@ -45,6 +49,7 @@ function installEarlyCss(id, css) {
 }
 
 function registeredCode(rule) {
+  const js = transpileRuleJavaScript(rule);
   const earlyCss = ruleRunAt(rule) === "document_start" && rule.css
     ? `(${installEarlyCss.toString()})(${JSON.stringify(earlyStyleId(rule))}, ${JSON.stringify(rule.css)});`
     : "";
@@ -53,7 +58,7 @@ function registeredCode(rule) {
   return `if (!(${isRestrictedUrl.toString()})(location.href) &&
     (${isMatch.toString()})(location.href, ${JSON.stringify(rule.urlPattern || "")})) {
     ${earlyCss}
-    ${rule.js || ""}
+    ${js}
   }`;
 }
 
@@ -175,12 +180,13 @@ async function injectRule(tabId, url, rule, { runJs = true } = {}) {
   // 3. JS Dynamic Execution (CSP-Safe Execution)
   if (runJs && rule.js && rule.js.trim() !== "") {
     try {
+      const js = transpileRuleJavaScript(rule);
       // Prioritize native userScripts API (bypasses page CSP entirely)
       if (ext.userScripts && ext.userScripts.execute) {
         if (!usesLibs(rule)) await configureUserScriptWorld();
         await ext.userScripts.execute({
           target: { tabId },
-          js: [{ code: rule.js }],
+          js: [{ code: js }],
           // Library rules need the page world to see the libs they load
           world: usesLibs(rule) ? "MAIN" : "USER_SCRIPT",
         });
@@ -201,7 +207,7 @@ async function injectRule(tabId, url, rule, { runJs = true } = {}) {
               console.error("User script execution error:", e);
             }
           },
-          args: [rule.js],
+          args: [js],
         });
       }
     } catch (err) {

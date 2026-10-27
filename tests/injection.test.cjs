@@ -5,6 +5,7 @@ const vm = require('node:vm');
 
 module.exports = (async () => {
   const shared = fs.readFileSync(path.join(__dirname, '../src/shared.js'), 'utf8');
+  const compiler = fs.readFileSync(path.join(__dirname, '../src/compiler.js'), 'utf8');
   const background = fs.readFileSync(path.join(__dirname, '../src/background.js'), 'utf8');
   const handlers = {};
   const calls = [];
@@ -36,7 +37,7 @@ module.exports = (async () => {
   };
   const warnings = [];
   const context = vm.createContext({ chrome: api, console: { warn: (...args) => warnings.push(args), error: console.error } });
-  vm.runInContext(shared + '\n' + background, context);
+  vm.runInContext(shared + '\n' + compiler + '\n' + background, context);
   await vm.runInContext('syncReady', context);
   const worldPolicy = calls.find(([name]) => name === 'configure-world')[1];
   assert.match(worldPolicy.csp, /script-src[^;]*'unsafe-inline'/);

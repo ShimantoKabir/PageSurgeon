@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PageSurgeon",
   "version": "0.0.1",
-  "description": "Inject custom JavaScript and CSS into web pages. Compatible with Chrome and Firefox.",
+  "description": "Inject custom JavaScript, TypeScript, and CSS into web pages. Compatible with Chrome and Firefox.",
   "permissions": ["storage", "scripting", "activeTab", "userScripts"],
   "host_permissions": ["<all_urls>"],
   "background": {
