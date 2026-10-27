@@ -2,6 +2,33 @@ const ext = globalThis.browser || globalThis.chrome;
 
 document.title = ext.runtime.getManifest().name;
 
+// Firefox requires userScripts to be requested from a user gesture.
+if (ext.runtime.getManifest().optional_permissions?.includes("userScripts")) {
+  const panel = document.getElementById("user-scripts-permission");
+  const status = document.getElementById("user-scripts-status");
+  const permission = { permissions: ["userScripts"] };
+  const refreshPermission = async () => {
+    panel.classList.toggle("hidden", await ext.permissions.contains(permission));
+  };
+  document.getElementById("enable-user-scripts").addEventListener("click", async () => {
+    try {
+      const granted = await ext.permissions.request(permission);
+      status.textContent = granted
+        ? "User scripts enabled. Reload your website tabs to apply rules."
+        : "Permission was not granted. Click Enable user scripts to try again.";
+      if (granted) await refreshPermission();
+    } catch (error) {
+      status.textContent = `Could not enable user scripts: ${error.message}`;
+    }
+  });
+  ext.permissions.onAdded.addListener(refreshPermission);
+  ext.permissions.onRemoved.addListener(refreshPermission);
+  refreshPermission().catch((error) => {
+    panel.classList.remove("hidden");
+    status.textContent = `Could not check user scripts permission: ${error.message}`;
+  });
+}
+
 let currentRuleId = null;
 let rules = [];
 
@@ -27,6 +54,8 @@ const ui = {
   panelMods: document.getElementById("modules-panel"),
   btnExport: document.getElementById("export-btn"),
   inputImport: document.getElementById("import-file"),
+  runAtStart: document.getElementById("run-at-start"),
+  timingError: document.getElementById("timing-error"),
 };
 
 /* ==========================================================
@@ -180,6 +209,9 @@ function updateEditor(type) {
     lineStr += i + "\n";
   }
   linesEl.textContent = lineStr;
+  hl.parentElement.scrollTop = editor.scrollTop;
+  hl.parentElement.scrollLeft = editor.scrollLeft;
+  linesEl.scrollTop = editor.scrollTop;
 }
 
 /* ==========================================================
@@ -199,8 +231,13 @@ class AutoCompleteManager {
   }
 
   init() {
-    this.textarea.addEventListener("input", () => this.checkSuggestions());
+    this.textarea.addEventListener("input", (event) => {
+      if (!event.isComposing) this.checkSuggestions();
+    });
     this.textarea.addEventListener("keydown", (e) => this.handleKeydown(e));
+    this.textarea.addEventListener("blur", () => this.hide());
+    this.textarea.addEventListener("scroll", () => this.hide());
+    this.textarea.addEventListener("click", () => this.hide());
 
     document.addEventListener("click", (e) => {
       if (!this.autoBox.contains(e.target) && e.target !== this.textarea) {
@@ -216,9 +253,10 @@ class AutoCompleteManager {
     return match ? match[1] : "";
   }
 
-  checkSuggestions() {
+  checkSuggestions(force = false) {
     this.currentWord = this.getWordBeforeCursor();
-    if (!this.currentWord || this.currentWord.length < 2) {
+    if (this.textarea.selectionStart !== this.textarea.selectionEnd ||
+      (!force && this.currentWord.length < 2)) {
       this.hide();
       return;
     }
@@ -226,7 +264,8 @@ class AutoCompleteManager {
     const query = this.currentWord.toLowerCase();
     this.matches = this.dictionary.filter((item) =>
       item.text.toLowerCase().includes(query),
-    );
+    ).sort((a, b) => Number(b.text.toLowerCase().startsWith(query)) -
+      Number(a.text.toLowerCase().startsWith(query)));
 
     if (this.matches.length === 0) {
       this.hide();
@@ -247,7 +286,10 @@ class AutoCompleteManager {
                 <span class="suggestion-text">${item.text}</span>
                 <span class="suggestion-badge">${item.type}</span>
             `;
-      div.addEventListener("click", () => this.applySuggestion(item));
+      div.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        this.applySuggestion(item);
+      });
       this.autoBox.appendChild(div);
     });
 
@@ -257,29 +299,25 @@ class AutoCompleteManager {
     );
     const lineIndex = textBefore.split("\n").length;
     const topPos = Math.min(
-      lineIndex * 20 + 20,
+      lineIndex * 20 + 15 - this.textarea.scrollTop,
       this.textarea.clientHeight - 180,
     );
 
-    this.autoBox.style.top = `${topPos}px`;
-    this.autoBox.style.left = `60px`;
+    this.autoBox.style.top = `${Math.max(0, topPos)}px`;
+    this.autoBox.style.left = "15px";
+    this.autoBox.style.maxWidth = `${Math.max(0, this.textarea.clientWidth - 30)}px`;
     this.autoBox.classList.remove("hidden");
   }
 
   applySuggestion(item) {
+    const placeholder = item.snippet?.indexOf("$1") ?? -1;
     const textToInsert = item.snippet
       ? item.snippet.replace(/\$1|\$2/g, "")
       : item.text;
     const pos = this.textarea.selectionStart;
-    const textBefore = this.textarea.value.slice(
-      0,
-      pos - this.currentWord.length,
-    );
-    const textAfter = this.textarea.value.slice(pos);
-
-    this.textarea.value = textBefore + textToInsert + textAfter;
-    const newCursorPos = textBefore.length + textToInsert.length;
-    this.textarea.selectionStart = this.textarea.selectionEnd = newCursorPos;
+    const start = pos - this.currentWord.length;
+    this.editor.replace(textToInsert, start, pos,
+      start + (placeholder >= 0 ? placeholder : textToInsert.length));
 
     this.hide();
     updateEditor(this.type);
@@ -287,6 +325,16 @@ class AutoCompleteManager {
   }
 
   handleKeydown(e) {
+    if (e.isComposing) return;
+    if (e.ctrlKey || e.metaKey) {
+      if (e.code === "Space") {
+        e.preventDefault();
+        this.checkSuggestions(true);
+      } else {
+        this.hide();
+      }
+      return;
+    }
     if (!this.autoBox.classList.contains("hidden") && this.matches.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -301,7 +349,7 @@ class AutoCompleteManager {
           Math.min(this.matches.length, 7);
         this.updateSelectedUI();
         return;
-      } else if (e.key === "Enter" || e.key === "Tab") {
+      } else if ((e.key === "Enter" || e.key === "Tab") && !e.shiftKey) {
         e.preventDefault();
         this.applySuggestion(this.matches[this.activeIdx]);
         return;
@@ -311,30 +359,7 @@ class AutoCompleteManager {
       }
     }
 
-    // Bracket auto-close & Tab handling
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const start = this.textarea.selectionStart;
-      const end = this.textarea.selectionEnd;
-      this.textarea.value =
-        this.textarea.value.substring(0, start) +
-        "    " +
-        this.textarea.value.substring(end);
-      this.textarea.selectionStart = this.textarea.selectionEnd = start + 4;
-      updateEditor(this.type);
-    } else if (["(", "{", "[", '"', "'"].includes(e.key)) {
-      const pairs = { "(": ")", "{": "}", "[": "]", '"': '"', "'": "'" };
-      const start = this.textarea.selectionStart;
-      const end = this.textarea.selectionEnd;
-      e.preventDefault();
-      this.textarea.value =
-        this.textarea.value.substring(0, start) +
-        e.key +
-        pairs[e.key] +
-        this.textarea.value.substring(end);
-      this.textarea.selectionStart = this.textarea.selectionEnd = start + 1;
-      updateEditor(this.type);
-    }
+    if (["ArrowLeft", "ArrowRight", "Home", "End", "Tab"].includes(e.key)) this.hide();
   }
 
   updateSelectedUI() {
@@ -358,10 +383,54 @@ const cssAuto = new AutoCompleteManager(
   CSS_SUGGESTIONS,
   "css",
 );
+jsAuto.editor = new CodeEditor(ui.js, () => updateEditor("js"), document.getElementById("js-status"));
+cssAuto.editor = new CodeEditor(ui.css, () => updateEditor("css"), document.getElementById("css-status"), "css");
+
+for (const [type, manager] of [["js", jsAuto], ["css", cssAuto]]) {
+  const button = document.getElementById(`beautify-${type}`);
+  const message = document.getElementById(`${type}-format-message`);
+  button.addEventListener("click", async () => {
+    const ruleId = currentRuleId;
+    const editor = manager.textarea;
+    const source = editor.value;
+    button.disabled = true;
+    button.textContent = "Formatting...";
+    message.classList.add("hidden");
+    try {
+      const result = await beautifySource(source, type, editor.selectionStart);
+      // A rule switch or further typing must never be overwritten by an old result.
+      if (ruleId !== currentRuleId || source !== editor.value) return;
+      manager.hide();
+      manager.editor.replace(result.formatted, 0, source.length, result.cursorOffset);
+      message.textContent = type === "css"
+        ? "Beautified. SCSS formatting does not compile SCSS to CSS."
+        : "Beautified. Save to apply your changes.";
+      message.classList.remove("editor-error", "hidden");
+    } catch (error) {
+      if (ruleId !== currentRuleId || source !== editor.value) return;
+      message.textContent = `Could not beautify: ${error.message}`;
+      message.classList.add("editor-error");
+      message.classList.remove("hidden");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Beautify";
+    }
+  });
+}
+
+function validateTiming() {
+  const hasLibraries = ui.libs.value.split("\n").some((line) => line.trim());
+  const invalid = ui.runAtStart.checked && hasLibraries;
+  ui.timingError.textContent = invalid
+    ? "Remove external libraries or turn off document start before saving. Libraries cannot finish loading before the DOM starts building."
+    : "";
+  ui.timingError.classList.toggle("hidden", !invalid);
+  return !invalid;
+}
+ui.runAtStart.addEventListener("change", validateTiming);
+ui.libs.addEventListener("input", validateTiming);
 
 // Synchronize inputs & scrolling
-ui.js.addEventListener("input", () => updateEditor("js"));
-ui.css.addEventListener("input", () => updateEditor("css"));
 
 ui.js.addEventListener("scroll", () => {
   ui.hlJs.parentElement.scrollTop = ui.js.scrollTop;
@@ -411,12 +480,13 @@ function renderList(filter = "") {
                 <div class="rule-url"></div>
             </div>
             <label class="switch" title="Enable/Disable">
-                <input type="checkbox" class="rule-toggle" ${rule.enabled !== false ? "checked" : ""}>
-                <span class="slider"></span>
+                <input type="checkbox" role="switch" class="rule-toggle" ${rule.enabled !== false ? "checked" : ""}>
+                <span class="slider" aria-hidden="true"></span>
             </label>
         `;
     li.querySelector(".rule-name").textContent = rule.name || "Untitled";
     li.querySelector(".rule-url").textContent = rule.urlPattern || "*";
+    li.querySelector(".rule-toggle").setAttribute("aria-label", `Enable ${rule.name || "Untitled rule"}`);
 
     li.addEventListener("click", (e) => {
       if (!e.target.closest(".switch")) selectRule(rule.id);
@@ -436,6 +506,7 @@ function commitEditor() {
   const rule = rules.find((r) => r.id === currentRuleId);
   if (!rule) return false;
   const next = {
+    runAt: ui.runAtStart.checked ? "document_start" : "document_idle",
     name: ui.name.value,
     urlPattern: ui.url.value,
     js: ui.js.value,
@@ -455,6 +526,7 @@ function commitEditor() {
 function selectRule(id) {
   // Don't lose edits when jumping to another rule
   if (currentRuleId && currentRuleId !== id) {
+    if (rules.some((rule) => rule.id === currentRuleId) && !validateTiming()) return;
     const prev = rules.find((r) => r.id === currentRuleId);
     if (commitEditor()) saveAll(() => notifyBackgroundLiveUpdate(prev));
   }
@@ -466,7 +538,14 @@ function selectRule(id) {
   ui.url.value = rule.urlPattern || "";
   ui.js.value = rule.js || "";
   ui.css.value = rule.css || "";
+  ui.runAtStart.checked = rule.runAt === "document_start";
+  for (const type of ["js", "css"]) document.getElementById(`${type}-format-message`).classList.add("hidden");
+  jsAuto.hide();
+  cssAuto.hide();
+  jsAuto.editor.reset();
+  cssAuto.editor.reset();
   ui.libs.value = (rule.libs || []).join("\n");
+  validateTiming();
   ui.btnMods.textContent = `${(rule.libs || []).length} Modules`;
 
   updateEditor("js");
@@ -475,6 +554,7 @@ function selectRule(id) {
 }
 
 function createRule() {
+  if (rules.some((rule) => rule.id === currentRuleId) && !validateTiming()) return;
   const r = {
     id: generateId(),
     name: "New Rule",
@@ -483,6 +563,7 @@ function createRule() {
     css: "",
     libs: [],
     enabled: true,
+    runAt: "document_idle",
   };
   rules.unshift(r);
   selectRule(r.id);
@@ -498,6 +579,7 @@ function saveAll(callback) {
 
 ui.btnSave.addEventListener("click", () => {
   if (!currentRuleId) return;
+  if (!validateTiming()) return;
   const rule = rules.find((r) => r.id === currentRuleId);
   if (rule) {
     commitEditor();
@@ -536,6 +618,8 @@ ui.btnMods.addEventListener("click", () => {
 });
 
 ui.btnExport.addEventListener("click", () => {
+  if (!validateTiming()) return;
+  commitEditor();
   const blob = new Blob([JSON.stringify(rules, null, 2)], {
     type: "application/json",
   });
@@ -566,6 +650,7 @@ ui.inputImport.addEventListener("change", (e) => {
           css: String(r.css ?? ""),
           libs: Array.isArray(r.libs) ? r.libs.map(String) : [],
           enabled: r.enabled !== false,
+          runAt: r.runAt === "document_start" ? "document_start" : "document_idle",
         }));
       currentRuleId = null; // don't let the old editor contents overwrite imported rules
       saveAll(() => ext.runtime.sendMessage({ action: "ruleUpdated", rule: { id: "import", urlPattern: "", enabled: false } }));

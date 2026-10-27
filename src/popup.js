@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 js: '',
                 css: '',
                 libs: [],
-                enabled: true
+                enabled: true,
+                runAt: 'document_idle'
             };
             rules.unshift(newRule);
             await ext.storage.local.set({ rules, targetRuleId: newId });

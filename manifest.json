@@ -6,7 +6,6 @@
   "permissions": ["storage", "scripting", "activeTab", "userScripts"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "scripts": ["src/shared.js", "src/background.js"],
     "service_worker": "src/background.js"
   },
   "action": {
@@ -16,11 +15,5 @@
   "options_ui": {
     "page": "src/options.html",
     "open_in_tab": true
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "page-surgeon@local.extension",
-      "strict_min_version": "109.0"
-    }
   }
 }
