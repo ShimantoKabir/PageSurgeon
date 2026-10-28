@@ -234,6 +234,8 @@ function updateEditor(type) {
 /* ==========================================================
    AUTOCOMPLETE ENGINE (INTELLISENSE)
    ========================================================== */
+const scriptCompletions = new ScriptCompletionClient(ext.runtime.getURL("src/completion-worker.js"));
+
 class AutoCompleteManager {
   constructor(textarea, autoBox, dictionary, type) {
     this.textarea = textarea;
@@ -243,6 +245,10 @@ class AutoCompleteManager {
     this.activeIdx = 0;
     this.matches = [];
     this.currentWord = "";
+    this.requestToken = 0;
+    this.autoBox.setAttribute("role", "listbox");
+    this.textarea.setAttribute("aria-autocomplete", "list");
+    this.textarea.setAttribute("aria-controls", this.autoBox.id);
 
     this.init();
   }
@@ -270,19 +276,44 @@ class AutoCompleteManager {
     return match ? match[1] : "";
   }
 
-  checkSuggestions(force = false) {
+  async checkSuggestions(force = false) {
+    const token = ++this.requestToken;
+    const source = this.textarea.value;
+    const position = this.textarea.selectionStart;
+    const member = this.type === "js" && /(?:\?\.|\.)\s*[\w$]*$/.test(source.slice(0, position));
     this.currentWord = this.getWordBeforeCursor();
     if (this.textarea.selectionStart !== this.textarea.selectionEnd ||
-      (!force && this.currentWord.length < 2)) {
+      (!force && !member && this.currentWord.length < 2)) {
       this.hide();
       return;
     }
 
     const query = this.currentWord.toLowerCase();
-    this.matches = this.dictionary.filter((item) =>
+    const fallback = () => this.dictionary.filter((item) =>
       item.text.toLowerCase().includes(query),
     ).sort((a, b) => Number(b.text.toLowerCase().startsWith(query)) -
       Number(a.text.toLowerCase().startsWith(query)));
+
+    if (this.type === "js") {
+      try {
+        const result = await scriptCompletions.suggest(source, position, ui.jsLanguage.value);
+        if (token !== this.requestToken || source !== this.textarea.value ||
+          position !== this.textarea.selectionStart || document.activeElement !== this.textarea) return;
+        if (!result) return;
+        this.matches = result.items;
+        if (!result.member && result.allowFallback) {
+          const names = new Set(this.matches.map((item) => item.text));
+          this.matches = [...fallback().filter((item) => !names.has(item.text)), ...this.matches];
+        }
+      } catch (error) {
+        if (token !== this.requestToken || source !== this.textarea.value ||
+          position !== this.textarea.selectionStart || document.activeElement !== this.textarea) return;
+        this.matches = member ? [] : fallback();
+        console.warn("Autocomplete:", error.message);
+      }
+    } else {
+      this.matches = fallback();
+    }
 
     if (this.matches.length === 0) {
       this.hide();
@@ -295,14 +326,20 @@ class AutoCompleteManager {
 
   render() {
     this.autoBox.innerHTML = "";
-    this.matches.slice(0, 7).forEach((item, index) => {
+    this.matches.forEach((item, index) => {
       const div = document.createElement("div");
       div.className =
         "autocomplete-item" + (index === this.activeIdx ? " selected" : "");
-      div.innerHTML = `
-                <span class="suggestion-text">${item.text}</span>
-                <span class="suggestion-badge">${item.type}</span>
-            `;
+      div.id = `${this.autoBox.id}-option-${index}`;
+      div.setAttribute("role", "option");
+      div.setAttribute("aria-selected", String(index === this.activeIdx));
+      const name = document.createElement("span");
+      name.className = "suggestion-text";
+      name.textContent = item.text;
+      const badge = document.createElement("span");
+      badge.className = "suggestion-badge";
+      badge.textContent = item.type;
+      div.append(name, badge);
       div.addEventListener("mousedown", (event) => {
         event.preventDefault();
         this.applySuggestion(item);
@@ -324,16 +361,20 @@ class AutoCompleteManager {
     this.autoBox.style.left = "15px";
     this.autoBox.style.maxWidth = `${Math.max(0, this.textarea.clientWidth - 30)}px`;
     this.autoBox.classList.remove("hidden");
+    this.autoBox.scrollTop = 0;
+    this.textarea.setAttribute("aria-expanded", "true");
+    this.textarea.setAttribute("aria-activedescendant", `${this.autoBox.id}-option-${this.activeIdx}`);
   }
 
   applySuggestion(item) {
     const placeholder = item.snippet?.indexOf("$1") ?? -1;
-    const textToInsert = item.snippet
+    const textToInsert = item.insertText || (item.snippet
       ? item.snippet.replace(/\$1|\$2/g, "")
-      : item.text;
+      : item.text);
     const pos = this.textarea.selectionStart;
-    const start = pos - this.currentWord.length;
-    this.editor.replace(textToInsert, start, pos,
+    const start = item.replaceStart ?? pos - this.currentWord.length;
+    const end = item.replaceLength === undefined ? pos : start + item.replaceLength;
+    this.editor.replace(textToInsert, start, end,
       start + (placeholder >= 0 ? placeholder : textToInsert.length));
 
     this.hide();
@@ -356,14 +397,13 @@ class AutoCompleteManager {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         this.activeIdx =
-          (this.activeIdx + 1) % Math.min(this.matches.length, 7);
+          (this.activeIdx + 1) % this.matches.length;
         this.updateSelectedUI();
         return;
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         this.activeIdx =
-          (this.activeIdx - 1 + Math.min(this.matches.length, 7)) %
-          Math.min(this.matches.length, 7);
+          (this.activeIdx - 1 + this.matches.length) % this.matches.length;
         this.updateSelectedUI();
         return;
       } else if ((e.key === "Enter" || e.key === "Tab") && !e.shiftKey) {
@@ -383,12 +423,18 @@ class AutoCompleteManager {
     const items = this.autoBox.querySelectorAll(".autocomplete-item");
     items.forEach((el, idx) => {
       el.classList.toggle("selected", idx === this.activeIdx);
+      el.setAttribute("aria-selected", String(idx === this.activeIdx));
+      if (idx === this.activeIdx) el.scrollIntoView({ block: "nearest" });
     });
+    this.textarea.setAttribute("aria-activedescendant", `${this.autoBox.id}-option-${this.activeIdx}`);
   }
 
   hide() {
+    this.requestToken++;
     this.autoBox.classList.add("hidden");
     this.matches = [];
+    this.textarea.setAttribute("aria-expanded", "false");
+    this.textarea.removeAttribute("aria-activedescendant");
   }
 }
 
@@ -405,6 +451,12 @@ jsAuto.editor = new CodeEditor(ui.js, () => {
   scheduleScriptValidation();
 }, document.getElementById("js-status"));
 cssAuto.editor = new CodeEditor(ui.css, () => updateEditor("css"), document.getElementById("css-status"), "css");
+const editorSplitter = new EditorSplitter(
+  document.getElementById("editors-container"),
+  document.getElementById("editor-splitter"),
+  ext.storage.local,
+  () => { jsAuto.hide(); cssAuto.hide(); },
+);
 
 let compileTimer;
 function validateScriptSource() {

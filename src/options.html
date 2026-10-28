@@ -35,8 +35,12 @@
       <!-- Main Editor Area -->
       <main class="editor-area">
         <div id="user-scripts-permission" class="modules-panel hidden">
-          <span id="user-scripts-status" role="status">Enable user scripts to run your JavaScript rules in Firefox.</span>
-          <button id="enable-user-scripts" class="secondary-btn">Enable user scripts</button>
+          <span id="user-scripts-status" role="status"
+            >Enable user scripts to run your JavaScript rules in Firefox.</span
+          >
+          <button id="enable-user-scripts" class="secondary-btn">
+            Enable user scripts
+          </button>
         </div>
         <header class="editor-header">
           <div class="input-group" style="flex: 1; max-width: 250px">
@@ -76,19 +80,40 @@
         </div>
 
         <!-- Editors with Line Numbers & Autocomplete -->
-        <div class="editors-container">
+        <div class="editors-container" id="editors-container">
           <!-- JavaScript Pane -->
           <div class="editor-pane" id="pane-js">
             <div class="pane-header">
-              <select id="js-language" class="tab active language-select" aria-label="Script language">
+              <select
+                id="js-language"
+                class="tab active language-select"
+                aria-label="Script language"
+              >
                 <option value="js">JavaScript</option>
                 <option value="ts">TypeScript</option>
               </select>
-              <span class="editor-hint" id="js-help">Ctrl+Space suggestions · Ctrl+S save</span>
-              <button id="beautify-js" class="beautify-btn" type="button" title="Beautify JavaScript">Beautify</button>
+              <span class="editor-hint" id="js-help"
+                >Ctrl+Space suggestions · Ctrl+S save</span
+              >
+              <button
+                id="beautify-js"
+                class="beautify-btn"
+                type="button"
+                title="Beautify JavaScript"
+              >
+                Beautify
+              </button>
             </div>
-            <div id="js-format-message" class="format-message hidden" role="status"></div>
-            <div id="js-compile-message" class="format-message hidden" role="status"></div>
+            <div
+              id="js-format-message"
+              class="format-message hidden"
+              role="status"
+            ></div>
+            <div
+              id="js-compile-message"
+              class="format-message hidden"
+              role="status"
+            ></div>
             <div class="code-wrapper">
               <div class="line-numbers" id="js-lines">1</div>
               <div class="code-surface">
@@ -108,27 +133,69 @@
                 <div class="autocomplete-box hidden" id="js-autocomplete"></div>
               </div>
             </div>
-            <div id="timing-error" class="format-message editor-error hidden" role="alert"></div>
+            <div
+              id="timing-error"
+              class="format-message editor-error hidden"
+              role="alert"
+            ></div>
             <div class="editor-status editor-footer">
-              <span id="js-status">Ln 1, Col 1 · 4 spaces</span>
+              <span id="js-status">Ln 1, Col 1 · 2 spaces</span>
               <label class="timing-control" for="run-at-start">
                 <span class="switch">
-                  <input id="run-at-start" type="checkbox" role="switch" aria-label="Run at document start" aria-describedby="run-at-help">
+                  <input
+                    id="run-at-start"
+                    type="checkbox"
+                    role="switch"
+                    aria-label="Run at document start"
+                    aria-describedby="run-at-help"
+                  />
                   <span class="slider" aria-hidden="true"></span>
                 </span>
-                <span id="run-at-help" class="timing-tooltip" role="tooltip"><strong>Run at document start</strong>JavaScript runs before the DOM is built; CSS applies when the document root exists. Requires user scripts enabled and no external libraries. Save, then reload the website.</span>
+                <span id="run-at-help" class="timing-tooltip" role="tooltip"
+                  ><strong>Run at document start</strong>JavaScript runs before
+                  the DOM is built; CSS applies when the document root exists.
+                  Requires user scripts enabled and no external libraries. Save,
+                  then reload the website.</span
+                >
               </label>
             </div>
           </div>
+
+          <div
+            id="editor-splitter"
+            class="editor-splitter"
+            role="separator"
+            tabindex="0"
+            aria-label="Resize code editors"
+            aria-controls="pane-js pane-css"
+            aria-orientation="vertical"
+            aria-valuemin="20"
+            aria-valuemax="80"
+            aria-valuenow="50"
+            title="Drag to resize editors. Arrow keys adjust; double-click or press Enter for an equal split."
+          ></div>
 
           <!-- CSS Pane -->
           <div class="editor-pane" id="pane-css">
             <div class="pane-header">
               <span class="tab active">CSS / SCSS</span>
-              <span class="editor-hint" id="css-help">Ctrl+Space suggestions · Ctrl+S save</span>
-              <button id="beautify-css" class="beautify-btn" type="button" title="Beautify CSS or SCSS (formatting only; SCSS is not compiled)">Beautify</button>
+              <span class="editor-hint" id="css-help"
+                >Ctrl+Space suggestions · Ctrl+S save</span
+              >
+              <button
+                id="beautify-css"
+                class="beautify-btn"
+                type="button"
+                title="Beautify CSS or SCSS (formatting only; SCSS is not compiled)"
+              >
+                Beautify
+              </button>
             </div>
-            <div id="css-format-message" class="format-message hidden" role="status"></div>
+            <div
+              id="css-format-message"
+              class="format-message hidden"
+              role="status"
+            ></div>
             <div class="code-wrapper">
               <div class="line-numbers" id="css-lines">1</div>
               <div class="code-surface">
@@ -151,10 +218,16 @@
                 ></div>
               </div>
             </div>
-            <div class="editor-status" id="css-status">Ln 1, Col 1 · 4 spaces</div>
+            <div class="editor-status" id="css-status">
+              Ln 1, Col 1 · 2 spaces
+            </div>
           </div>
         </div>
-        <p class="keyboard-help" id="editor-keyboard-help">Tab / Shift+Tab indent · Ctrl+/ toggle comment · Enter continues indentation · Ctrl+Z undo · Ctrl+Shift+Z redo · Escape then Tab leaves the editor</p>
+        <p class="keyboard-help" id="editor-keyboard-help">
+          Tab / Shift+Tab indent · Ctrl+/ toggle comment · Enter continues
+          indentation · Ctrl+Z undo · Ctrl+Shift+Z redo · Escape then Tab leaves
+          the editor
+        </p>
       </main>
     </div>
     <script src="vendor/prettier/standalone.js"></script>
@@ -165,6 +238,8 @@
     <script src="vendor/typescript/typescript.js"></script>
     <script src="compiler.js"></script>
     <script src="editor.js"></script>
+    <script src="splitter.js"></script>
+    <script src="completions.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

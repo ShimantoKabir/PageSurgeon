@@ -298,8 +298,10 @@ body {
 
 /* Editors Layout */
 .editors-container {
+  min-height: 0;
+  min-width: 0;
   display: flex;
-  flex-grow: 1;
+  flex: 1 1 0;
   overflow: hidden;
 }
 .editor-pane {
@@ -311,6 +313,34 @@ body {
   border-right: 1px solid #1a1a21;
   overflow: hidden;
 }
+#pane-js { flex: var(--js-grow, 50) 1 0px; border-right: 0; }
+#pane-css { flex: var(--css-grow, 50) 1 0px; border-right: 0; }
+.editor-splitter {
+  position: relative;
+  flex: 0 0 8px;
+  background: #17171f;
+  border-left: 1px solid #353542;
+  border-right: 1px solid #353542;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+.editor-splitter::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background: #747b94;
+}
+.editor-splitter:hover, .editor-splitter:focus-visible, .is-resizing .editor-splitter { background: #243650; }
+.editor-splitter:hover::before, .editor-splitter:focus-visible::before, .is-resizing .editor-splitter::before { background: #93c5fd; }
+.editor-splitter:focus-visible { outline: 2px solid #64b5f6; outline-offset: -2px; }
+.editors-container.is-resizing, .editors-container.is-resizing * { cursor: col-resize !important; user-select: none; }
 .pane-header {
   background-color: #23232c;
   border-bottom: 1px solid #1a1a21;
@@ -477,6 +507,9 @@ body {
 .keyboard-help { line-height: 1.6; }
 @media (max-width: 1000px) {
   .editors-container { flex-direction: column; }
+  .editor-splitter { cursor: row-resize; border: 0; border-top: 1px solid #353542; border-bottom: 1px solid #353542; }
+  .editor-splitter::before { width: 36px; height: 2px; }
+  .editors-container.is-resizing, .editors-container.is-resizing * { cursor: row-resize !important; }
   .editor-header { flex-wrap: wrap; }
   .sidebar { width: 220px; flex-shrink: 0; }
   .editor-hint { display: none; }
@@ -549,11 +582,17 @@ body {
 }
 
 .suggestion-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-family: "Consolas", "Courier New", monospace;
   font-weight: 500;
 }
 
 .suggestion-badge {
+  flex-shrink: 0;
+  margin-left: 10px;
   font-size: 10px;
   padding: 1px 4px;
   border-radius: 3px;

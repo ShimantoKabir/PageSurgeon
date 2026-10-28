@@ -30,6 +30,27 @@ checks use a DOM fixture; browser verification is a separate manual check.
 
 ## Editors
 
+JavaScript and TypeScript autocomplete uses the bundled TypeScript language
+service and DOM type libraries in a dedicated worker. It suggests members
+after a dot or optional chain, including variables inferred from DOM queries,
+arrays, strings, object literals, and declared TypeScript types. For example,
+`const x = document.querySelector('a#dib'); x.` offers anchor members such as
+`href`, plus inherited DOM members. Chained expressions such as `x.classList.`
+and `x.style.` also work. Use the arrows to browse the full scrollable list
+and Enter or Tab to insert a member without replacing its receiver.
+
+Autocomplete analyzes source locally without executing it or contacting a
+service. Compound literal selectors with a known HTML tag receive additional
+type hints. Untyped third-party APIs or selectors that don't identify a tag
+may provide less specific suggestions. Run checks with
+`node tests/completions.test.cjs`.
+
+Drag the divider between the editors to resize them. On narrow windows it
+becomes an up/down divider. Double-click it or focus it and press Enter to
+restore an equal split. Arrow keys adjust the focused divider; Shift+Arrow
+makes a larger adjustment. Each layout remembers its own split position.
+Run the interaction checks with `node tests/splitter.test.cjs`.
+
 Both editors support four-space indentation with Tab, selection indentation
 with Tab / Shift+Tab, automatic indentation on Enter, bracket and quote pairs,
 selection wrapping, and undo / redo. Autocomplete places the cursor at the
